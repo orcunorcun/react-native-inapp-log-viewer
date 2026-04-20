@@ -66,6 +66,18 @@ const toInlineText = (value: unknown): string => {
   }
 };
 
+const toSafePositiveInteger = (value: unknown, fallback: number): number => {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+
+  if (value < 1) {
+    return fallback;
+  }
+
+  return Math.floor(value);
+};
+
 const resolveDefaultEnabled = (): boolean => {
   if (typeof __DEV__ === "boolean") {
     return __DEV__;
@@ -137,11 +149,18 @@ const mergeHydratedEntries = (
 };
 
 export const createLogger = (config: LoggerConfig = {}): InAppLogger => {
-  const maxEntries = config.maxEntries ?? DEFAULT_MAX_ENTRIES;
-  const summaryMaxLength =
-    config.summaryMaxLength ?? DEFAULT_SUMMARY_MAX_LENGTH;
-  const previewMaxLength =
-    config.previewMaxLength ?? DEFAULT_PREVIEW_MAX_LENGTH;
+  const maxEntries = toSafePositiveInteger(
+    config.maxEntries,
+    DEFAULT_MAX_ENTRIES,
+  );
+  const summaryMaxLength = toSafePositiveInteger(
+    config.summaryMaxLength,
+    DEFAULT_SUMMARY_MAX_LENGTH,
+  );
+  const previewMaxLength = toSafePositiveInteger(
+    config.previewMaxLength,
+    DEFAULT_PREVIEW_MAX_LENGTH,
+  );
   const previewNormalize = mergeNormalizeOptions(
     PREVIEW_NORMALIZE_OPTIONS,
     config.previewNormalize,
@@ -283,7 +302,13 @@ export const createLogger = (config: LoggerConfig = {}): InAppLogger => {
       return null;
     }
 
-    const trimmedSummary = (summary || "").trim();
+    const normalizedSummary =
+      typeof summary === "string"
+        ? summary
+        : summary === null || typeof summary === "undefined"
+          ? ""
+          : String(summary);
+    const trimmedSummary = normalizedSummary.trim();
     const safeSummary = truncateString(
       trimmedSummary || "[Empty log]",
       summaryMaxLength,

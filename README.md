@@ -30,14 +30,19 @@ npm install react-native-inapp-log-viewer
 
 No native module setup is required.
 
+Optional integrations:
+
+- Redux action logging works with both `redux` and `@reduxjs/toolkit`.
+- Axios logging requires passing your existing axios instance.
+
 ## Quick Start
 
 ```tsx
-import React, { useEffect } from 'react';
+import axios from 'axios';
+import React from 'react';
 import {
   configureDefaultLogger,
-  interceptConsole,
-  attachGlobalErrorLogger,
+  setupInAppLogger,
   InAppLoggerProvider,
   InAppLogViewerModalButton,
 } from 'react-native-inapp-log-viewer';
@@ -47,19 +52,13 @@ const logger = configureDefaultLogger({
   maxEntries: 1000,
 });
 
+setupInAppLogger({
+  logger,
+  enabled: __DEV__,
+  axiosInstance: axios,
+});
+
 export function App() {
-  useEffect(() => {
-    const detachConsole = interceptConsole(logger, {
-      ignoreReduxLogger: true,
-    });
-    const detachGlobalError = attachGlobalErrorLogger(logger);
-
-    return () => {
-      detachConsole();
-      detachGlobalError();
-    };
-  }, []);
-
   return (
     <InAppLoggerProvider logger={logger}>
       {/* your app */}
@@ -69,18 +68,63 @@ export function App() {
 }
 ```
 
-## Adapter Usage
-
-### Redux actions
+### One-call setup helper
 
 ```ts
-import { createReduxActionLogMiddleware } from 'react-native-inapp-log-viewer';
+import axios from 'axios';
+import { configureDefaultLogger, setupInAppLogger } from 'react-native-inapp-log-viewer';
 
-const runtimeLogMiddleware = createReduxActionLogMiddleware(logger, {
-  includePayloadInSummary: false,
+const logger = configureDefaultLogger({ enabled: __DEV__ });
+
+const { teardown } = setupInAppLogger({
+  logger,
+  enabled: __DEV__,
+  axiosInstance: axios,
+  ignoreReduxLogger: true,
 });
 
-// apply middleware in your store setup
+// Optional: call teardown() when you want to detach adapters.
+```
+
+## Adapter Usage
+
+### Redux actions (Redux Toolkit)
+
+```ts
+import { configureStore } from '@reduxjs/toolkit';
+import { createReduxActionLogMiddleware } from 'react-native-inapp-log-viewer';
+
+const store = configureStore({
+  reducer: rootReducer,
+  middleware: getDefaultMiddleware =>
+    getDefaultMiddleware().concat(
+      createReduxActionLogMiddleware(logger, {
+        includePayloadInSummary: false,
+      }),
+    ),
+});
+```
+
+`@reduxjs/toolkit` is optional for this library. It is shown here only because many apps already use Toolkit.
+
+### Redux actions (Plain Redux)
+
+```ts
+import { applyMiddleware, combineReducers, legacy_createStore as createStore } from 'redux';
+import { createReduxActionLogMiddleware } from 'react-native-inapp-log-viewer';
+
+const rootReducer = combineReducers({
+  // your reducers
+});
+
+const store = createStore(
+  rootReducer,
+  applyMiddleware(
+    createReduxActionLogMiddleware(logger, {
+      includePayloadInSummary: false,
+    }),
+  ),
+);
 ```
 
 ### Axios
@@ -179,6 +223,7 @@ function ApiLogsCounter() {
 - `attachAxiosLogger(logger?, axiosInstance, options?)`
 - `createFetchLogger(logger?, options?)`
 - `attachGlobalErrorLogger(logger?, options?)`
+- `setupInAppLogger(options?)`
 - `InAppLoggerProvider`
 - `useInAppLogger()`
 - `useInAppLogs(filter?, logger?)`
@@ -220,6 +265,16 @@ function ApiLogsCounter() {
 - `GlobalErrorLoggerOptions`
   - `enabled?: boolean`
   - `callOriginalHandler?: boolean` (default `true`)
+- `SetupInAppLoggerOptions`
+  - `logger?: InAppLogger` (default `getDefaultLogger()`)
+  - `enabled?: boolean` (default `logger.isEnabled()`)
+  - `axiosInstance?: AxiosInstanceLike`
+  - `enableConsole?: boolean` (default `true`)
+  - `enableGlobalError?: boolean` (default `true`)
+  - `enableAxios?: boolean` (default `true`)
+  - `ignoreReduxLogger?: boolean`
+  - `callOriginalGlobalErrorHandler?: boolean`
+  - `globalTeardownKey?: string` (default `__rnInAppLoggerSetupTeardown`)
 
 ### `InAppLogViewerProps`
 

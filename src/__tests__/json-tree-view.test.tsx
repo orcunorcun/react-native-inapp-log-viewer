@@ -24,4 +24,28 @@ describe("JsonTreeView", () => {
     expect(combinedLines).toContain("items[0]:");
     expect(combinedLines).toContain("sku: A1");
   });
+
+  it("traverses object entries in mixed arrays", () => {
+    const debugLines = buildJsonTreeDebugLines({
+      mixed: ["first", { id: 2 }],
+    });
+    const combinedLines = debugLines.join("\n");
+
+    expect(combinedLines).toContain("mixed[0]: first");
+    expect(combinedLines).toContain("mixed[1]:");
+    expect(combinedLines).toContain("id: 2");
+  });
+
+  it("handles circular references without infinite recursion", () => {
+    const value: { name: string; self?: unknown } = {
+      name: "root",
+    };
+    value.self = value;
+
+    const debugLines = buildJsonTreeDebugLines(value);
+    const combinedLines = debugLines.join("\n");
+
+    expect(combinedLines).toContain("name: root");
+    expect(combinedLines).toContain("self: [Circular]");
+  });
 });

@@ -36,9 +36,9 @@ type AxiosErrorLike = {
 type AxiosFulfilledHandler<T> = (value: T) => T | Promise<T>;
 type AxiosRejectedHandler = (error: unknown) => unknown;
 
-type AxiosInterceptorManager<T> = {
+type AxiosInterceptorManager = {
   use: (
-    onFulfilled: AxiosFulfilledHandler<T>,
+    onFulfilled: AxiosFulfilledHandler<any>,
     onRejected?: AxiosRejectedHandler,
   ) => number;
   eject: (id: number) => void;
@@ -46,8 +46,8 @@ type AxiosInterceptorManager<T> = {
 
 export interface AxiosInstanceLike {
   interceptors: {
-    request: AxiosInterceptorManager<AxiosRequestConfigLike>;
-    response: AxiosInterceptorManager<AxiosResponseLike>;
+    request: AxiosInterceptorManager;
+    response: AxiosInterceptorManager;
   };
 }
 

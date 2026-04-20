@@ -1,6 +1,6 @@
 # Third-Party Licenses
 
-Generated at: 2026-04-20T05:05:55.449Z Scope: direct runtime requirements (dependencies + optionalDependencies + peerDependencies)
+Generated at: 2026-04-20T16:17:38.583Z Scope: direct runtime requirements (dependencies + optionalDependencies + peerDependencies)
 
 Total packages: 2
 Packages with unknown license: 0

@@ -73,9 +73,7 @@ const isObjectRecord = (value: unknown): value is Record<string, unknown> => {
 const isArrayWithObject = (value: unknown): value is unknown[] => {
   return (
     Array.isArray(value) &&
-    value.length > 0 &&
-    typeof value[0] === "object" &&
-    value[0] !== null
+    value.some((item) => typeof item === "object" && item !== null)
   );
 };
 
@@ -256,33 +254,44 @@ export const buildJsonTreeDebugLines = (value: unknown): string[] => {
     lines.push(`${key}: ${toDisplayValueText(node)}`);
   };
 
-  const walk = (key: string, node: unknown): void => {
+  const walk = (key: string, node: unknown, seen: WeakSet<object>): void => {
+    if (typeof node === "object" && node !== null) {
+      if (seen.has(node)) {
+        lines.push(`${key}: [Circular]`);
+        return;
+      }
+      seen.add(node);
+    }
+
     appendLine(key, node);
 
     if (isObjectRecord(node)) {
       Object.keys(node).forEach((subKey) => {
-        walk(subKey, node[subKey]);
+        walk(subKey, node[subKey], seen);
       });
-      return;
+    } else if (Array.isArray(node)) {
+      node.forEach((childNode, index) => {
+        walk(`${key}[${index}]`, childNode, seen);
+      });
     }
 
-    if (isArrayWithObject(node)) {
-      node.forEach((childObjectNode, index) => {
-        walk(`${key}[${index}]`, childObjectNode);
-      });
+    if (typeof node === "object" && node !== null) {
+      seen.delete(node);
     }
   };
 
+  const seenNodes = new WeakSet<object>();
+
   if (isObjectRecord(value)) {
     Object.keys(value).forEach((key) => {
-      walk(key, value[key]);
+      walk(key, value[key], seenNodes);
     });
     return lines;
   }
 
   if (Array.isArray(value)) {
     value.forEach((arrayItem, index) => {
-      walk(`[${index}]`, arrayItem);
+      walk(`[${index}]`, arrayItem, seenNodes);
     });
     return lines;
   }
@@ -450,14 +459,31 @@ export const JsonTreeView = ({
     key: string,
     node: unknown,
     path: string,
+    seenNodes: WeakSet<object>,
     isSub?: boolean,
   ): React.ReactNode => {
-    const childObject = isObjectRecord(node);
-    const childArrayWithObject = isArrayWithObject(node);
+    const isObjectLikeNode = typeof node === "object" && node !== null;
+    const isCircularNode = isObjectLikeNode && seenNodes.has(node);
+
+    if (isObjectLikeNode && !isCircularNode) {
+      seenNodes.add(node);
+    }
+
+    const childObject = !isCircularNode && isObjectRecord(node);
+    const childArrayWithObject = !isCircularNode && isArrayWithObject(node);
 
     let rowValueContent: React.ReactNode = null;
 
-    if (
+    if (isCircularNode) {
+      rowValueContent = (
+        <Text
+          selectable={selectable}
+          style={[styles.tableCell, styles.tableCellOther]}
+        >
+          [Circular]
+        </Text>
+      );
+    } else if (
       node === null ||
       node === undefined ||
       childObject ||
@@ -488,6 +514,33 @@ export const JsonTreeView = ({
       );
     }
 
+    const objectRows = childObject
+      ? Object.keys(node).map((subKey) =>
+          renderJsonRow(
+            subKey,
+            node[subKey],
+            `${path}.${subKey}`,
+            seenNodes,
+            true,
+          ),
+        )
+      : null;
+    const arrayRows = childArrayWithObject
+      ? node.map((childObjectNode, index) =>
+          renderJsonRow(
+            `${key}[${index}]`,
+            childObjectNode,
+            `${path}[${index}]`,
+            seenNodes,
+            true,
+          ),
+        )
+      : null;
+
+    if (isObjectLikeNode && !isCircularNode) {
+      seenNodes.delete(node);
+    }
+
     return (
       <React.Fragment key={path}>
         <View style={[styles.tableRow, isSub ? styles.tableSubRow : null]}>
@@ -503,35 +556,24 @@ export const JsonTreeView = ({
           </Text>
           {rowValueContent}
         </View>
-        {childObject
-          ? Object.keys(node).map((subKey) =>
-              renderJsonRow(subKey, node[subKey], `${path}.${subKey}`, true),
-            )
-          : null}
-        {childArrayWithObject
-          ? node.map((childObjectNode, index) =>
-              renderJsonRow(
-                `${key}[${index}]`,
-                childObjectNode,
-                `${path}[${index}]`,
-                true,
-              ),
-            )
-          : null}
+        {objectRows}
+        {arrayRows}
       </React.Fragment>
     );
   };
 
   const renderFlatJsonTreeContent = (): React.ReactNode => {
+    const seenNodes = new WeakSet<object>();
+
     if (isObjectRecord(value)) {
       return Object.keys(value).map((key) =>
-        renderJsonRow(key, value[key], key),
+        renderJsonRow(key, value[key], key, seenNodes),
       );
     }
 
     if (Array.isArray(value)) {
       return value.map((arrayItem, index) =>
-        renderJsonRow(`[${index}]`, arrayItem, `[${index}]`),
+        renderJsonRow(`[${index}]`, arrayItem, `[${index}]`, seenNodes),
       );
     }
 

@@ -1,6 +1,6 @@
 {
   "name": "react-native-inapp-log-viewer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lightweight in-app log viewer for React Native with real-time updates, filtering, and search for faster debugging.",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
@@ -26,6 +26,7 @@
     "THIRD_PARTY_LICENSES.md",
     "LICENSE",
     "!**/__tests__",
+    "!**/type-tests",
     "!**/__fixtures__",
     "!**/__mocks__",
     "!**/.*"
@@ -74,6 +75,7 @@
     "@react-native/babel-preset": "0.85.0",
     "@react-native/eslint-config": "0.85.0",
     "@react-native/jest-preset": "0.85.0",
+    "@reduxjs/toolkit": "2.11.2",
     "@release-it/conventional-changelog": "10.0.6",
     "@types/react": "19.2.0",
     "commitlint": "20.5.0",

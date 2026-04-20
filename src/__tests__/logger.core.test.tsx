@@ -21,6 +21,16 @@ describe("core logger", () => {
     expect(logs[2]?.summary).toBe("log-4");
   });
 
+  it("falls back to default maxEntries when invalid values are provided", () => {
+    const logger = createLogger({ enabled: true, maxEntries: 0 });
+
+    logger.log({ source: "console", summary: "log-1" });
+    logger.log({ source: "console", summary: "log-2" });
+
+    const logs = logger.getSnapshot();
+    expect(logs).toHaveLength(2);
+  });
+
   it("redacts sensitive keys and truncates preview text", () => {
     const logger = createLogger({ enabled: true });
 
@@ -253,5 +263,20 @@ describe("core logger", () => {
     const snapshotC = logger.getSnapshot();
     expect(snapshotC).not.toBe(snapshotA);
     expect(snapshotC).toHaveLength(2);
+  });
+
+  it("coerces non-string summary values without throwing", () => {
+    const logger = createLogger({ enabled: true });
+
+    expect(() => {
+      logger.log({
+        source: "custom",
+        level: "info",
+        summary: 123 as unknown as string,
+      });
+    }).not.toThrow();
+
+    const entry = logger.getSnapshot()[0];
+    expect(entry?.summary).toBe("123");
   });
 });

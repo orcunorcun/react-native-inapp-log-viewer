@@ -9,6 +9,7 @@ export {
 export { attachAxiosLogger } from "./adapters/axios";
 export { createFetchLogger } from "./adapters/fetch";
 export { attachGlobalErrorLogger } from "./adapters/globalError";
+export { setupInAppLogger } from "./setup";
 
 export { InAppLoggerProvider, useInAppLogger } from "./hooks/loggerContext";
 export { useInAppLogs } from "./hooks/useInAppLogs";
@@ -30,6 +31,8 @@ export type {
   JsonTreeViewProps,
   JsonTreeViewTheme,
 } from "./components/JsonTreeView";
+
+export type { SetupInAppLoggerOptions, SetupInAppLoggerResult } from "./setup";
 
 export type {
   AppendLogInput,

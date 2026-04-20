@@ -71,20 +71,47 @@ export interface ReduxActionLogOptions {
   includePayloadInSummary?: boolean;
 }
 
-type ReduxDispatchLike = (action: unknown) => unknown;
-type ReduxMiddlewareApiLike = {
-  dispatch: ReduxDispatchLike;
-  getState: () => unknown;
+export type ReduxActionLike<T extends string = string> = {
+  type: T;
 };
-type ReduxMiddlewareNext = (action: unknown) => unknown;
-type ReduxMiddlewareLike = (
-  api: ReduxMiddlewareApiLike,
+
+export interface ReduxUnknownActionLike extends ReduxActionLike {
+  [extraProps: string]: unknown;
+}
+
+export interface ReduxDispatchLike<
+  Action extends ReduxActionLike = ReduxUnknownActionLike,
+> {
+  <ActionToDispatch extends Action>(
+    action: ActionToDispatch,
+    ...extraArgs: unknown[]
+  ): ActionToDispatch;
+}
+
+export type ReduxMiddlewareNext = (action: unknown) => unknown;
+
+export interface ReduxMiddlewareApiLike<
+  Dispatch extends ReduxDispatchLike = ReduxDispatchLike,
+  State = any,
+> {
+  dispatch: Dispatch;
+  getState(): State;
+}
+
+export type ReduxMiddlewareLike<
+  State = any,
+  Dispatch extends ReduxDispatchLike = ReduxDispatchLike,
+> = (
+  api: ReduxMiddlewareApiLike<Dispatch, State>,
 ) => (next: ReduxMiddlewareNext) => (action: unknown) => unknown;
 
-export const createReduxActionLogMiddleware = (
+export const createReduxActionLogMiddleware = <
+  State = any,
+  Dispatch extends ReduxDispatchLike = ReduxDispatchLike,
+>(
   logger: InAppLogger = getDefaultLogger(),
   options: ReduxActionLogOptions = {},
-): ReduxMiddlewareLike => {
+): ReduxMiddlewareLike<State, Dispatch> => {
   return (_api) => (next) => (action) => {
     if ((options.enabled ?? logger.isEnabled()) && isLoggableAction(action)) {
       logger.log({

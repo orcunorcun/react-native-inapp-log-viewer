@@ -9,7 +9,7 @@ describe("redux adapter", () => {
     const middleware = createReduxActionLogMiddleware(logger);
 
     const invoke = middleware({
-      dispatch: () => undefined,
+      dispatch: (action) => action,
       getState: () => ({}),
     })((action: unknown) => action);
 
@@ -48,7 +48,7 @@ describe("redux adapter", () => {
     });
 
     const invoke = middleware({
-      dispatch: () => undefined,
+      dispatch: (action) => action,
       getState: () => ({}),
     })((action: unknown) => action);
 
@@ -69,7 +69,7 @@ describe("redux adapter", () => {
     const middleware = createReduxActionLogMiddleware(logger);
 
     const invoke = middleware({
-      dispatch: () => undefined,
+      dispatch: (action) => action,
       getState: () => ({}),
     })((action: unknown) => action);
 
